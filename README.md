@@ -1,42 +1,17 @@
 # cfer-consul-cluster-cookbook
 
-TODO: Enter the cookbook description here.
+Uses [Cfer](https://github.com/seanedwards/cfer) to launch a self-bootstrapping Consul cluster into an AWS AutoScaling group.
 
-## Supported Platforms
+To launch the cluster, run `rake converge`. This will prompt you for:
 
-TODO: List your supported platforms.
+* A VPC ID
+* A comma-separated list of Subnet IDs
+* An EC2 Keypair name
 
-## Attributes
+* Review and modify [consul.rb](https://github.com/seanedwards/chef-cfer-consul-cluster/blob/master/consul.rb) before using this in production.
 
-<table>
-  <tr>
-    <th>Key</th>
-    <th>Type</th>
-    <th>Description</th>
-    <th>Default</th>
-  </tr>
-  <tr>
-    <td><tt>['cfer-consul-cluster']['bacon']</tt></td>
-    <td>Boolean</td>
-    <td>whether to include bacon</td>
-    <td><tt>true</tt></td>
-  </tr>
-</table>
+## Features
 
-## Usage
-
-### cfer-consul-cluster::default
-
-Include `cfer-consul-cluster` in your node's `run_list`:
-
-```json
-{
-  "run_list": [
-    "recipe[cfer-consul-cluster::default]"
-  ]
-}
-```
-
-## License and Authors
-
-Author:: YOUR_NAME (<YOUR_EMAIL>)
+* New nodes automatically join the cluster.
+* Autoscaling policies roll over servers one at a time when changing things like instance type.
+* CloudFormation creation and updates will fail and roll back if there's a provisioning issue.
