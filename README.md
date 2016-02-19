@@ -8,7 +8,7 @@ To launch the cluster, run `rake converge`. This will prompt you for:
 * A comma-separated list of Subnet IDs
 * An EC2 Keypair name
 
-Review and modify [consul.rb](https://github.com/seanedwards/chef-cfer-consul-cluster/blob/master/consul.rb) before using this in production.
+Review and modify [consul.rb](https://github.com/seanedwards/chef-cfer-consul-cluster/blob/master/consul.rb) before using this in production. I recommend also creating a [wrapper cookbook](https://www.chef.io/blog/2013/12/03/doing-wrapper-cookbooks-right/) to add your own server monitoring, log aggreagation, and other such infrastructure to these servers.
 
 ## Features
 
