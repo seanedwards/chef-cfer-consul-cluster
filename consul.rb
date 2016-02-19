@@ -49,9 +49,9 @@ resource :ConsulRole, "AWS::IAM::Role" do
     PolicyDocument: {
       Version: "2012-10-17",
       Statement: [ {
-        Effect: "Allow",
-        Action: "*",
-        Resource: "*"
+          Effect: "Allow",
+          Action: "ec2:DescribeInstances",
+          Resource: "*"
       } ]
     }
   } ]
@@ -109,20 +109,20 @@ resource :ConsulLaunchConfig, "AWS::AutoScaling::LaunchConfiguration" do
 end
 
 resource :ConsulASG, "AWS::AutoScaling::AutoScalingGroup" do
-  #CreationPolicy: {
-  #  ResourceSignal: {
-  #    Count: subnets.size,
-  #    Timeout: 'PT10M0S'
-  #  }
-  #},
-  #UpdatePolicy: {
-  #  AutoScalingRollingUpdate: {
-  #    MinInstancesInService: subnets.size - 1,
-  #    MaxBatchSize: 1,
-  #    PauseTime: 'PT10M0S',
-  #    WaitOnResourceSignals: true
-  #  }
-  #} do
+  CreationPolicy: {
+    ResourceSignal: {
+      Count: subnets.size,
+      Timeout: 'PT10M0S'
+    }
+  },
+  UpdatePolicy: {
+    AutoScalingRollingUpdate: {
+      MinInstancesInService: subnets.size,
+      MaxBatchSize: 1,
+      PauseTime: 'PT10M0S',
+      WaitOnResourceSignals: true
+    }
+  } do
   launch_configuration_name Fn::ref(:ConsulLaunchConfig)
 
   load_balancer_names [ Fn::ref(:ConsulELB) ] if parameters[:CreateELB] == 'true'
