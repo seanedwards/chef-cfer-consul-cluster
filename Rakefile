@@ -12,9 +12,9 @@ task :converge => :config_aws do |t, args|
   Cfer.converge! 'consul',
     template: 'consul.rb',
     parameters: {
-      VpcId: 'vpc-91c39cf5',
-      Subnets: 'subnet-0fee3557,subnet-232cfa09',
-      KeyName: 'MacBookAir'
+      VpcId: ask('VPC ID?'),
+      Subnets: ask('Subnets? (comma-separated)'),
+      KeyName: ask('EC2 Key Name?')
     },
     on_failure: 'DO_NOTHING',
     follow: true
