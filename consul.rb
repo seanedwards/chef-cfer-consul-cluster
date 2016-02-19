@@ -8,8 +8,10 @@ parameter :Subnets, default: 'sg-asdf'
 
 subnets = parameters[:Subnets].split(',')
 
+parameter :NodeCount, default: subnets.size
+
 resource :ConsulSG, "AWS::EC2::SecurityGroup" do
-  group_description 'Wide-open SSH'
+  group_description 'Security Group for Consul nodes'
   vpc_id Fn::ref(:VpcId)
 
   # Parameter values can be Ruby arrays and hashes. These will be transformed to JSON.
@@ -22,6 +24,14 @@ resource :ConsulSG, "AWS::EC2::SecurityGroup" do
       ToPort: 22
     }
   ]
+end
+
+resource :ConsulSGIngressAny, "AWS::EC2::SecurityGroupIngress" do
+  group_id Fn::ref(:ConsulSG)
+  source_security_group_id Fn::ref(:ConsulSG)
+  ip_protocol '-1'
+  from_port 0
+  to_port 65536
 end
 
 resource :ConsulRole, "AWS::IAM::Role" do
@@ -54,16 +64,6 @@ resource :ConsulInstanceProfile, "AWS::IAM::InstanceProfile" do
   roles [ Fn::ref(:ConsulRole) ]
 end
 
-%w{8300 8301 8302 8400 8500 8600}.each do |port|
-  resource "ConsulSGIngress#{port}", "AWS::EC2::SecurityGroupIngress" do
-    group_id Fn::ref(:ConsulSG)
-    source_security_group_id Fn::ref(:ConsulSG)
-    ip_protocol '-1'
-    from_port port
-    to_port port
-  end
-end
-
 resource :ConsulLaunchConfig, "AWS::AutoScaling::LaunchConfiguration" do
   cfn_init_setup signal: :ConsulASG,
     cfn_init_config_set: [ :cfn_hup, :install_chef, :run_chef, :bootstrap_consul ],
@@ -75,6 +75,7 @@ resource :ConsulLaunchConfig, "AWS::AutoScaling::LaunchConfiguration" do
       consul: {
         config: {
           server: true,
+          ui: true,
           bootstrap_expect: subnets.size
         }
       }
@@ -82,7 +83,7 @@ resource :ConsulLaunchConfig, "AWS::AutoScaling::LaunchConfiguration" do
     berksfile: <<-EOF
       source "https://supermarket.chef.io"
 
-      cookbook 'cfer-consul-cluster', github: 'seanedwards/chef-cfer-consul-cluster'
+      cookbook 'cfer-consul-cluster', git: 'https://github.com/seanedwards/chef-cfer-consul-cluster.git'
     EOF
 
   cfn_init_config :bootstrap_consul do
@@ -124,8 +125,10 @@ resource :ConsulASG, "AWS::AutoScaling::AutoScalingGroup" do
   #} do
   launch_configuration_name Fn::ref(:ConsulLaunchConfig)
 
-  max_size subnets.size
-  min_size subnets.size - 1
+  load_balancer_names [ Fn::ref(:ConsulELB) ] if parameters[:CreateELB] == 'true'
+
+  max_size subnets.size + 1
+  min_size subnets.size
   desired_capacity subnets.size
 
   properties :VPCZoneIdentifier => subnets
@@ -133,3 +136,46 @@ end
 
 output :ConsulSG, Fn::ref(:ConsulSG)
 
+
+parameter :CreateELB, default: 'true'
+
+if parameters[:CreateELB] == 'true'
+
+  resource :ConsulELBSG, "AWS::EC2::SecurityGroup" do
+    group_description 'Security Group for Consul Load Balancer'
+    vpc_id Fn::ref(:VpcId)
+
+    security_group_ingress [
+      {
+        CidrIp: '0.0.0.0/0',
+        IpProtocol: 'tcp',
+        FromPort: 80,
+        ToPort: 80
+      }
+    ]
+  end
+
+  resource :ConsulSGIngressELB, "AWS::EC2::SecurityGroupIngress" do
+    group_id Fn::ref(:ConsulSG)
+    source_security_group_id Fn::ref(:ConsulELBSG)
+    ip_protocol 'tcp'
+    from_port 8600
+    to_port 8600
+  end
+
+  resource :ConsulELB, "AWS::ElasticLoadBalancing::LoadBalancer" do
+    security_groups [ Fn::ref(:ConsulELBSG) ]
+    properties :Subnets => subnets
+    listeners [
+      {
+        InstancePort: 8600,
+        LoadBalancerPort: 80,
+        InstanceProtocol: 'HTTP',
+        Protocol: 'HTTP'
+      }
+    ]
+  end
+
+  output :ConsulELBAddr, Fn::get_att(:ConsulELB, :DNSName)
+  output :ConsulELBSG, Fn::ref(:ConsulELBSG)
+end
