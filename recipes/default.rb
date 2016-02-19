@@ -12,6 +12,8 @@ package 'awscli'
 
 chef_gem 'aws-sdk'
 
+node.default[:consul][:config][:bind_addr] = node['ec2']['local_ipv4'] if node.attribute?('ec2')
+
 include_recipe 'aws'
 include_recipe 'consul::default'
 include_recipe 'consul::client_gem'

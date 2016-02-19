@@ -82,7 +82,7 @@ resource :ConsulLaunchConfig, "AWS::AutoScaling::LaunchConfiguration" do
     berksfile: <<-EOF
       source "https://supermarket.chef.io"
 
-      cookbook 'cfer-consul-cluster', github: 'seanedwards/cfer-consul-cluster'
+      cookbook 'cfer-consul-cluster', github: 'seanedwards/chef-cfer-consul-cluster'
     EOF
 
   cfn_init_config :bootstrap_consul do
