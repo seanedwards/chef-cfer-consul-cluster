@@ -1,3 +1,5 @@
+description 'Fully-functional self-bootstrapping Consul cluster in an autoscaling group'
+
 parameter :VpcId
 
 # This is the Ubuntu 14.04 LTS HVM AMI provided by Amazon.
@@ -108,7 +110,7 @@ resource :ConsulLaunchConfig, "AWS::AutoScaling::LaunchConfiguration" do
   security_groups [ Fn::ref(:ConsulSG) ]
 end
 
-resource :ConsulASG, "AWS::AutoScaling::AutoScalingGroup" do
+resource :ConsulASG, "AWS::AutoScaling::AutoScalingGroup",
   CreationPolicy: {
     ResourceSignal: {
       Count: subnets.size,
